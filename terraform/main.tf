@@ -23,7 +23,7 @@ resource "google_compute_instance" "docker-instance" {
   provisioner "remote-exec" {
     connection {
       host= self.network_interface.0.access_config.0.nat_ip
-    #   private_key = file(var.private_key)
+      private_key = file(var.private_key.private_key)
     }  
     inline = [
       "mkdir /docker",
@@ -34,6 +34,10 @@ resource "google_compute_instance" "docker-instance" {
     provisioner "file" {
     source      = "../docker/"
     destination = "/docker"
+    connection {
+      host= self.network_interface.0.access_config.0.nat_ip
+      private_key = file(var.private_key.private_key)
+    }  
   }
 
 }
