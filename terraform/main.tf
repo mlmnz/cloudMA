@@ -1,4 +1,3 @@
-
 # Create new instance with Container OS 
 resource "google_compute_instance" "docker-instance" {
     name         = "docker-instance"
@@ -18,31 +17,24 @@ resource "google_compute_instance" "docker-instance" {
     }
   }
 
-
-  #Post instance creation. Script
-  provisioner "remote-exec" {
-    connection {
-      host= self.network_interface.0.access_config.0.nat_ip
-      private_key = file(var.private_key.private_key)
-    }  
-    inline = [
-      "mkdir /docker",
-    ]
+  metadata = {
+    ssh-keys = "${var.user}:${file(var.public_key)}"
+  }
+  
+  connection {
+    user = var.user
+    host= self.network_interface.0.access_config.0.nat_ip
+    private_key= file(var.private_key)
+    script_path = "~/scripts"
+    #timeout = "90s"
   }
 
-   #Copies the script file docker-compose.yml
-    provisioner "file" {
-    source      = "../docker/"
-    destination = "/docker"
-    connection {
-      host= self.network_interface.0.access_config.0.nat_ip
-      private_key = file(var.private_key.private_key)
-    }  
+  #Copies the docker-compose.yml and .env files to terraform home
+  provisioner "file" {
+    source      = "../docker"
+    destination = "~"
   }
-
 }
-
-
 
 # Create a network for Docker/Kubernetes
 resource "google_compute_network" "docker-network" {
@@ -69,5 +61,4 @@ resource "google_compute_firewall" "rules-docker" {
   }
   source_ranges = ["0.0.0.0/0"]
   target_tags = [var.docker_tag]
-
 }
