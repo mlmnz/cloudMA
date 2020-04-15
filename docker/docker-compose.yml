@@ -1,0 +1,32 @@
+version: "3"
+volumes: 
+    pihole.etc-pihole
+    pihole.etc-dnsmasq.d
+
+services:
+    pihole:
+        container_name: pihole
+        image: pihole/pihole:latest
+        ports:
+            - "53:53/tcp"
+            - "53:53/udp"
+            - "8053:80"
+        environment:
+            - TZ=America/Bogota
+            - WEBPASSWORD=${PIHOLE_PASS}
+        volumes: 
+            - pihole.etc-pihole:/etc/pihole/
+            - pihole.etc-dnsmasq.d:/etc/dnsmasq.d/
+        restart: unless-stopped
+
+    duckdns:
+        image: linuxserver/duckdns
+        container_name: duckdns
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=America/Bogota
+            - SUBDOMAINS= ${DUCKDNS_SUB}
+            - TOKEN=${DUCKDNS_TOKEN}
+            - LOG_FILE=false
+        restart: unless-stopped
