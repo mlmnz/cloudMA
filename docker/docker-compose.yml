@@ -1,9 +1,6 @@
-version: "3"
-volumes: 
-    pihole.etc-pihole
-    pihole.etc-dnsmasq.d
-
+version: "3.7"
 services:
+
     pihole:
         container_name: pihole
         image: pihole/pihole:latest
@@ -30,3 +27,7 @@ services:
             - TOKEN=${DUCKDNS_TOKEN}
             - LOG_FILE=false
         restart: unless-stopped
+
+volumes: 
+    pihole.etc-pihole:
+    pihole.etc-dnsmasq.d:       
