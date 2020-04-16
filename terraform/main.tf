@@ -18,7 +18,7 @@ resource "google_compute_instance" "docker-instance" {
   }
 
   metadata = {
-    gs = "mistorage"
+    gs = bucket_docker
     ssh-keys = "${var.user}:${file(var.public_key)}"
   }
   
@@ -62,4 +62,11 @@ resource "google_compute_firewall" "rules-docker" {
   }
   source_ranges = ["0.0.0.0/0"]
   target_tags = [var.docker_tag]
+}
+
+
+# Bucket for backups docker volumes
+resource "google_storage_bucket" "bucket_docker" {
+  name          = var.bucket_docker
+  location      = "US-CENTRAL1"
 }
