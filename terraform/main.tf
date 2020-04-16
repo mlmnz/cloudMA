@@ -18,6 +18,7 @@ resource "google_compute_instance" "docker-instance" {
   }
 
   metadata = {
+    gs = "mistorage"
     ssh-keys = "${var.user}:${file(var.public_key)}"
   }
   
