@@ -32,6 +32,8 @@ variable "docker_tag" {
   default     = "docker-tag"
 }
 
+variable "bucket_backend" {}
+variable "bucket_docker"{}
 variable "gcp_credentials" {}
 variable "private_key" {}
 variable "public_key" {}
