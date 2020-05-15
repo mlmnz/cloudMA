@@ -1,24 +1,43 @@
 version: "3.7"
 services:
 
-    pihole:
-        container_name: pihole
-        image: pihole/pihole:latest
-        ports:
-            - "53:53/tcp"
-            - "53:53/udp"
-            - "8053:80"
-        environment:
-            - TZ=America/Bogota
-            - WEBPASSWORD=${PIHOLE_PASS}
-        volumes: 
-            - pihole.etc-pihole:/etc/pihole/
-            - pihole.etc-dnsmasq.d:/etc/dnsmasq.d/
+    proxy:
+        container_name: "proxy"
+        image: "traefik:2.2"
         restart: unless-stopped
+        command:
+            - "--api.dashboard=true"
+            - "--providers.docker=true"
+            - "--entrypoints.web.address=:80"
+            - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+            - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+            - "--entrypoints.websecure.address=:443"
+            - "--certificatesresolvers.myresolver.acme.dnschallenge=true"
+            - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=duckdns"
+            - "--certificatesresolvers.myresolver.acme.email=${EMAIL}"
+            - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+        networks:
+            - proxy_net      
+        ports:
+            - "80:80"
+            - "443:443"
+        environment:
+            - "DUCKDNS_TOKEN=${DUCKDNS_TOKEN}"
 
+        volumes:
+            - letsencrypt:/letsencrypt
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        labels:
+        - "traefik.http.routers.api.rule=Host(`traefik.${DUCKDNS_SUB}.duckdns.org`)"
+        - "traefik.http.routers.api.tls.certresolver=myresolver"
+        - "traefik.http.routers.api.service=api@internal"
+        - "traefik.http.routers.api.middlewares=auth"
+        - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_AUTH}"    
+    
     duckdns:
-        image: linuxserver/duckdns
         container_name: duckdns
+        image: linuxserver/duckdns
+        restart: unless-stopped
         environment:
             - PUID=1000
             - PGID=1000
@@ -26,8 +45,51 @@ services:
             - SUBDOMAINS= ${DUCKDNS_SUB}
             - TOKEN=${DUCKDNS_TOKEN}
             - LOG_FILE=false
-        restart: unless-stopped
 
+    # portainer:
+    #     container_name: portainer
+    #     image: portainer/portainer
+    #     restart: unless-stopped        
+    #     networks:
+    #         - proxy_net              
+    #     expose: 
+    #         - "9000"
+    #     volumes: 
+    #         - /var/run/docker.sock:/var/run/docker.sock 
+    #         - portainer_data:/data
+    #     labels: 
+    #         - "traefik.http.routers.portainer.rule=Host(`portainer.${DUCKDNS_SUB}.duckdns.org`)"
+    #         - "traefik.http.routers.portainer.tls.certresolver=myresolver"
+
+    pihole:
+        container_name: pihole
+        image: pihole/pihole:v5.0
+        restart: unless-stopped
+        networks:
+            - proxy_net          
+        ports:
+            - "53:53/tcp"
+            - "53:53/udp"
+        expose: 
+            - "80"    
+        environment:
+            - TZ=America/Bogota
+            - WEBPASSWORD=${PIHOLE_PASS}
+            - VIRTUAL_HOST=pihole.${DUCKDNS_SUB}.duckdns.org
+        volumes: 
+            - pihole.etc-pihole:/etc/pihole/
+            - pihole.etc-dnsmasq.d:/etc/dnsmasq.d/
+        labels: 
+            - "traefik.http.routers.pihole.rule=Host(`pihole.${DUCKDNS_SUB}.duckdns.org`)"
+            - "traefik.http.routers.pihole.tls.certresolver=myresolver"
+            - "traefik.http.services.pihole.loadbalancer.server.port=80"
+   
 volumes: 
     pihole.etc-pihole:
-    pihole.etc-dnsmasq.d:       
+    pihole.etc-dnsmasq.d:
+    portainer_data:
+    letsencrypt:
+
+networks:
+  proxy_net:
+    external: true
