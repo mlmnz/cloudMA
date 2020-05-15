@@ -42,7 +42,7 @@ services:
             - PUID=1000
             - PGID=1000
             - TZ=America/Bogota
-            - SUBDOMAINS= ${DUCKDNS_SUB}
+            - SUBDOMAINS=${DUCKDNS_SUB}
             - TOKEN=${DUCKDNS_TOKEN}
             - LOG_FILE=false
 
